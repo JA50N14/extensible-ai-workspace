@@ -1,0 +1,22 @@
+[project]
+name = "extensible-ai-workspace"
+version = "0.1.0"
+description = "A self-hostable, extensible AI workspace with persistent context, controlled tool use, and source-traceable workflows."
+readme = "README.md"
+authors = [
+    { name = "JA50N14", email = "macfarlane_j@hotmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = []
+
+[project.scripts]
+extensible-ai-workspace = "extensible_ai_workspace:main"
+
+[build-system]
+requires = ["uv_build>=0.12.7,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
