@@ -16,8 +16,10 @@ class Settings(BaseSettings):
     """Configuration loaded through the application boundary."""
 
     runtime_role: RuntimeRole
+    database_url: str
 
     model_config = SettingsConfigDict(
         env_prefix="AIW_",
         extra="ignore",
     )
+

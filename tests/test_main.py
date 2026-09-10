@@ -3,7 +3,12 @@ from unittest.mock import Mock
 import pytest
 
 from extensible_ai_workspace import main
-from extensible_ai_workspace.config import RuntimeRole
+from extensible_ai_workspace.config import RuntimeRole, Settings
+
+TEST_DATABASE_URL = (
+    "postgresql://app:development@localhost:5432/"
+    "extensible_ai_workspace"
+)
 
 
 @pytest.mark.parametrize(
@@ -19,6 +24,7 @@ def test_main_dispatches_configured_runtime(
     expected_role: RuntimeRole,
 ) -> None:
     monkeypatch.setenv("AIW_RUNTIME_ROLE", configured_value)
+    monkeypatch.setenv("AIW_DATABASE_URL", TEST_DATABASE_URL)
     run_runtime = Mock()
 
     monkeypatch.setattr(
@@ -28,7 +34,13 @@ def test_main_dispatches_configured_runtime(
 
     main()
 
-    run_runtime.assert_called_once_with(expected_role)
+    run_runtime.assert_called_once()
+
+    settings = run_runtime.call_args.args[0]
+
+    assert isinstance(settings, Settings)
+    assert settings.runtime_role is expected_role
+    assert settings.database_url == TEST_DATABASE_URL
 
 
 def test_main_exits_safely_when_runtime_role_is_missing(
@@ -36,6 +48,7 @@ def test_main_exits_safely_when_runtime_role_is_missing(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     monkeypatch.delenv("AIW_RUNTIME_ROLE", raising=False)
+    monkeypatch.setenv("AIW_DATABASE_URL", TEST_DATABASE_URL)
 
     with pytest.raises(SystemExit) as raised:
         main()
@@ -55,6 +68,7 @@ def test_main_exits_safely_when_runtime_role_is_invalid(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     monkeypatch.setenv("AIW_RUNTIME_ROLE", "api")
+    monkeypatch.setenv("AIW_DATABASE_URL", TEST_DATABASE_URL)
 
     with pytest.raises(SystemExit) as raised:
         main()

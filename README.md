@@ -42,3 +42,49 @@ The liveness endpoint does not check external dependencies. The readiness endpoi
 
 PostgreSQL readiness is not connected yet. It will replace the current in-process readiness check when the local runtime foundation is implemented.
 
+
+## Local container environment
+
+The local environment contains three services:
+
+- `postgres`: PostgreSQL database and authoritative application dependency.
+- `web`: FastAPI web runtime.
+- `worker`: Independent worker runtime using the same application image.
+
+Build and start the environment:
+
+```bash
+docker compose up --build --detach
+
+Inspect all services:
+docker compose ps --all
+
+The expected state is:
+- PostgreSQL is running and healthy.
+- The web runtime is running.
+- The worker runtime is running.
+
+Open the application at http://127.0.0.1:8000/app.
+
+Verify liveness:
+curl --fail --silent --show-error \
+  http://127.0.0.1:8000/health/live
+
+Verify readiness:
+curl --fail --silent --show-error \
+  http://127.0.0.1:8000/health/ready
+Readiness includes a PostgreSQL connectivity check. If PostgreSQL is unavailable, liveness remains successful while readiness returns HTTP 503.
+
+View service logs:
+docker compose logs web
+docker compose logs worker
+docker compose logs postgres
+
+Stop and remove the containers:
+docker compose down
+
+The PostgreSQL named volume is preserved by the normal shutdown command. To delete local database data intentionally, use:
+docker compose down --volumes
+
+The worker currently validates PostgreSQL and then remains idle. It does not claim jobs or execute workflows.
+

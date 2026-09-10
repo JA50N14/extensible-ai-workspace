@@ -21,4 +21,4 @@ def main() -> None:
         )
         raise SystemExit(2) from None
 
-    run_runtime(settings.runtime_role)
+    run_runtime(settings)
