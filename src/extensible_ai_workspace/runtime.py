@@ -9,7 +9,7 @@ from extensible_ai_workspace.web import create_app
 from extensible_ai_workspace.web.readiness import (
     create_database_readiness_check,
 )
-from extensible_ai_workspace.database import check_database_connection
+from extensible_ai_workspace.database import check_database_schema
 
 def run_web(settings: Settings) -> None:
     """Start the web runtime."""
@@ -28,10 +28,10 @@ def run_web(settings: Settings) -> None:
 def run_worker(settings: Settings) -> None:
     """Start the worker runtime."""
 
-    if not check_database_connection(settings.database_url):
+    if not check_database_schema(settings.database_url):
         print(
             "Worker runtime is not ready. "
-            "The configured PostgreSQL database is unavailable.",
+            "The configured PostgreSQL database or schema is unavailable.",
             file=sys.stderr,
         )
         raise SystemExit(1)

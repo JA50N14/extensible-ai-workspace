@@ -58,3 +58,26 @@ def test_settings_rejects_missing_database_url(
 
     with pytest.raises(ValidationError):
         Settings()
+
+
+def test_database_settings_do_not_require_runtime_role(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AIW_DATABASE_URL", TEST_DATABASE_URL)
+    monkeypatch.delenv("AIW_RUNTIME_ROLE", raising=False)
+
+    from extensible_ai_workspace.config import DatabaseSettings
+
+    settings = DatabaseSettings()
+
+    assert settings.database_url == TEST_DATABASE_URL
+
+
+def test_application_settings_still_require_runtime_role(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AIW_DATABASE_URL", TEST_DATABASE_URL)
+    monkeypatch.delenv("AIW_RUNTIME_ROLE", raising=False)
+
+    with pytest.raises(ValidationError):
+        Settings()

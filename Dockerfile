@@ -10,6 +10,9 @@ ENV UV_LINK_MODE=copy
 COPY pyproject.toml uv.lock README.md ./
 COPY src ./src
 
+COPY alembic.ini ./
+COPY migrations ./migrations
+
 RUN uv sync --locked --no-dev
 
 CMD ["uv", "run", "--no-sync", "extensible-ai-workspace"]

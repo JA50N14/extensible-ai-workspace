@@ -15,11 +15,11 @@ TEST_DATABASE_URL = (
 def test_database_readiness_check_uses_configured_database_url(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    check_database_connection = Mock(return_value=True)
+    check_database_schema = Mock(return_value=True)
 
     monkeypatch.setattr(
-        "extensible_ai_workspace.web.readiness.check_database_connection",
-        check_database_connection,
+        "extensible_ai_workspace.web.readiness.check_database_schema",
+        check_database_schema,
     )
 
     readiness_check = create_database_readiness_check(TEST_DATABASE_URL)
@@ -27,4 +27,4 @@ def test_database_readiness_check_uses_configured_database_url(
     result = readiness_check()
 
     assert result is True
-    check_database_connection.assert_called_once_with(TEST_DATABASE_URL)
+    check_database_schema.assert_called_once_with(TEST_DATABASE_URL)

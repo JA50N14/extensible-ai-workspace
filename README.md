@@ -88,3 +88,96 @@ docker compose down --volumes
 
 The worker currently validates PostgreSQL and then remains idle. It does not claim jobs or execute workflows.
 
+
+## Database migrations
+
+Database schema changes are managed through Alembic. The web and worker
+runtimes do not apply migrations automatically.
+
+Apply all pending migrations:
+
+```bash
+docker compose \
+  --profile tools \
+  run \
+  --rm \
+  --build \
+  migrate
+```
+
+The migration service waits for PostgreSQL to become healthy, applies all
+migrations through the current Alembic head revision, and exits.
+
+View the current migration revision:
+
+```bash
+docker compose exec -T postgres \
+  psql \
+  --username app \
+  --dbname extensible_ai_workspace \
+  --tuples-only \
+  --command \
+  "SELECT version_num FROM alembic_version;"
+```
+
+The application currently supports schema revision `0001`. Web readiness and
+worker startup fail safely when the database is unavailable, has no applied
+revision, or has an unsupported revision.
+
+Generate migration SQL without applying it:
+
+```bash
+AIW_DATABASE_URL=postgresql://app:development@postgres:5432/extensible_ai_workspace \
+uv run alembic upgrade head --sql
+```
+
+Downgrades are intended for isolated development and integration testing.
+Do not downgrade a database containing data that must be preserved without
+first reviewing the migration and preparing an appropriate recovery plan.
+
+## PostgreSQL integration tests
+
+Migration integration tests use a separate, disposable PostgreSQL service.
+The test database is published only to the local host at
+`127.0.0.1:5433`.
+
+Start the test database:
+
+```bash
+docker compose \
+  --profile test \
+  up \
+  --detach \
+  --wait \
+  postgres_test
+```
+
+Run the migration integration test:
+
+```bash
+uv run pytest \
+  -m integration \
+  tests/test_migrations_integration.py
+```
+
+The test creates a uniquely named temporary database, upgrades it to the
+current migration head, verifies the expected schema, downgrades it to the
+base revision, and deletes it.
+
+Stop and remove the disposable test database:
+
+```bash
+docker compose \
+  --profile test \
+  stop \
+  postgres_test
+
+docker compose \
+  --profile test \
+  rm \
+  --force \
+  postgres_test
+```
+
+The normal application database and its named volume are not used by the
+migration integration test.

@@ -12,10 +12,9 @@ class RuntimeRole(StrEnum):
     WORKER = "worker"
 
 
-class Settings(BaseSettings):
-    """Configuration loaded through the application boundary."""
+class DatabaseSettings(BaseSettings):
+    """Database configuration shared by application and migration commands."""
 
-    runtime_role: RuntimeRole
     database_url: str
 
     model_config = SettingsConfigDict(
@@ -23,3 +22,8 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+
+class Settings(DatabaseSettings):
+    """Configuration required to start an application runtime."""
+
+    runtime_role: RuntimeRole

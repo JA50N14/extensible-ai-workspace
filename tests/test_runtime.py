@@ -63,13 +63,13 @@ def test_run_worker_starts_when_database_is_available(
         runtime_role=RuntimeRole.WORKER,
         database_url=TEST_DATABASE_URL,
     )
-    check_database_connection = Mock(return_value=True)
+    check_database_schema = Mock(return_value=True)
     worker_event = Mock()
     event_factory = Mock(return_value=worker_event)
 
     monkeypatch.setattr(
-        "extensible_ai_workspace.runtime.check_database_connection",
-        check_database_connection,
+        "extensible_ai_workspace.runtime.check_database_schema",
+        check_database_schema,
     )
     monkeypatch.setattr(
         "extensible_ai_workspace.runtime.Event",
@@ -82,7 +82,7 @@ def test_run_worker_starts_when_database_is_available(
 
     captured = capsys.readouterr()
 
-    check_database_connection.assert_called_once_with(
+    check_database_schema.assert_called_once_with(
         TEST_DATABASE_URL
     )
     event_factory.assert_called_once_with()
@@ -101,11 +101,11 @@ def test_run_worker_exits_when_database_is_unavailable(
         runtime_role=RuntimeRole.WORKER,
         database_url=TEST_DATABASE_URL,
     )
-    check_database_connection = Mock(return_value=False)
+    check_database_schema = Mock(return_value=False)
 
     monkeypatch.setattr(
-        "extensible_ai_workspace.runtime.check_database_connection",
-        check_database_connection,
+        "extensible_ai_workspace.runtime.check_database_schema",
+        check_database_schema,
     )
 
     from extensible_ai_workspace.runtime import run_worker
@@ -115,12 +115,12 @@ def test_run_worker_exits_when_database_is_unavailable(
 
     captured = capsys.readouterr()
 
-    check_database_connection.assert_called_once_with(
+    check_database_schema.assert_called_once_with(
         TEST_DATABASE_URL
     )
     assert raised.value.code == 1
     assert captured.out == ""
     assert captured.err == (
         "Worker runtime is not ready. "
-        "The configured PostgreSQL database is unavailable.\n"
+        "The configured PostgreSQL database or schema is unavailable.\n"
     )

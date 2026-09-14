@@ -15,7 +15,42 @@ services:
       start_period: 10s
     volumes:
       - postgres_data:/var/lib/postgresql
-
+  
+  postgres_test:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: development
+      POSTGRES_DB: postgres
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U app -d postgres
+      interval: 2s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    ports:
+      - "127.0.0.1:5433:5432"
+    profiles:
+      - test  
+  migrate:
+    build: .
+    image: extensible-ai-workspace:local
+    command:
+      - uv
+      - run
+      - --no-sync
+      - alembic
+      - upgrade
+      - head
+    environment:
+      AIW_DATABASE_URL: postgresql://app:development@postgres:5432/extensible_ai_workspace
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - tools
   web:
     build: .
     image: extensible-ai-workspace:local
