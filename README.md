@@ -181,3 +181,81 @@ docker compose \
 
 The normal application database and its named volume are not used by the
 migration integration test.
+
+## Trusted-local authentication
+
+The local container environment uses explicitly enabled trusted-local
+authentication. This mode is intended only for a loopback-accessible local
+deployment.
+
+The application requires:
+
+```text
+AIW_AUTHENTICATION_MODE=local_trusted
+AIW_PUBLIC_ORIGIN=http://127.0.0.1:8000
+AIW_LOCAL_IDENTITY_ISSUER=extensible-ai-workspace-local
+AIW_LOCAL_IDENTITY_SUBJECT=local-user
+AIW_LOCAL_IDENTITY_DISPLAY_NAME=Local User
+```
+
+Trusted-local authentication fails configuration validation when the public
+origin is not a loopback address.
+
+Establish a local application session:
+
+```bash
+COOKIE_JAR=/tmp/aiw-auth-cookies.txt
+rm -f "$COOKIE_JAR"
+
+LOGIN_RESPONSE=$(
+  curl --silent \
+    --cookie-jar "$COOKIE_JAR" \
+    http://127.0.0.1:8000/auth/login
+)
+```
+
+The browser receives an opaque `HttpOnly` session cookie. PostgreSQL stores
+only the SHA-256 hash of the session token.
+
+Extract the session-bound CSRF token from the one-time login response:
+
+```bash
+CSRF_TOKEN=$(
+  printf '%s' "$LOGIN_RESPONSE" |
+  uv run python -c \
+    'import json, sys; print(json.load(sys.stdin)["csrf_token"])'
+)
+```
+
+Inspect the current session:
+
+```bash
+curl --silent \
+  --cookie "$COOKIE_JAR" \
+  http://127.0.0.1:8000/auth/session
+```
+
+Session inspection returns safe identity and expiry metadata. It does not
+return the session token, session-token hash, raw CSRF token, or stored CSRF
+verifier.
+
+Logout requires the session cookie, matching public origin, and session-bound
+CSRF token:
+
+```bash
+curl --silent \
+  --cookie "$COOKIE_JAR" \
+  --header "Origin: http://127.0.0.1:8000" \
+  --header "X-CSRF-Token: $CSRF_TOKEN" \
+  --request POST \
+  http://127.0.0.1:8000/auth/logout
+```
+
+Logout revokes the server-side session and clears the browser cookie.
+
+Remove temporary credential material:
+
+```bash
+unset LOGIN_RESPONSE CSRF_TOKEN
+rm -f "$COOKIE_JAR"
+```

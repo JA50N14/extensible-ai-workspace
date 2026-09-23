@@ -3,6 +3,10 @@
 from fastapi import FastAPI, Response, status
 from fastapi.responses import HTMLResponse
 
+from extensible_ai_workspace.web.auth import (
+    SessionServiceFactory,
+    create_auth_router,
+)
 from extensible_ai_workspace.web.readiness import (
     ReadinessCheck,
     default_readiness_check,
@@ -11,6 +15,10 @@ from extensible_ai_workspace.web.readiness import (
 
 def create_app(
     readiness_check: ReadinessCheck = default_readiness_check,
+    *,
+    session_service_factory: SessionServiceFactory | None = None,
+    public_origin: str = "http://127.0.0.1:8000",
+    secure_cookie: bool = False,
 ) -> FastAPI:
     """Construct the web application."""
 
@@ -52,6 +60,15 @@ def create_app(
           </body>
         </html>
         """
+
+    if session_service_factory is not None:
+        app.include_router(
+            create_auth_router(
+                session_service_factory=session_service_factory,
+                public_origin=public_origin,
+                secure_cookie=secure_cookie,
+            )
+        )
 
     return app
 

@@ -10,6 +10,33 @@ TEST_DATABASE_URL = (
     "extensible_ai_workspace"
 )
 
+def configure_valid_environment(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    runtime_role: str,
+) -> None:
+    monkeypatch.setenv("AIW_RUNTIME_ROLE", runtime_role)
+    monkeypatch.setenv("AIW_DATABASE_URL", TEST_DATABASE_URL)
+    monkeypatch.setenv(
+        "AIW_AUTHENTICATION_MODE",
+        "local_trusted",
+    )
+    monkeypatch.setenv(
+        "AIW_PUBLIC_ORIGIN",
+        "http://127.0.0.1:8000",
+    )
+    monkeypatch.setenv(
+        "AIW_LOCAL_IDENTITY_ISSUER",
+        "extensible-ai-workspace-local",
+    )
+    monkeypatch.setenv(
+        "AIW_LOCAL_IDENTITY_SUBJECT",
+        "local-user",
+    )
+    monkeypatch.setenv(
+        "AIW_LOCAL_IDENTITY_DISPLAY_NAME",
+        "Local User",
+    )
 
 @pytest.mark.parametrize(
     ("configured_value", "expected_role"),
@@ -23,8 +50,10 @@ def test_main_dispatches_configured_runtime(
     configured_value: str,
     expected_role: RuntimeRole,
 ) -> None:
-    monkeypatch.setenv("AIW_RUNTIME_ROLE", configured_value)
-    monkeypatch.setenv("AIW_DATABASE_URL", TEST_DATABASE_URL)
+    configure_valid_environment(
+        monkeypatch,
+        runtime_role=configured_value,
+    )
     run_runtime = Mock()
 
     monkeypatch.setattr(
@@ -47,8 +76,12 @@ def test_main_exits_safely_when_runtime_role_is_missing(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    monkeypatch.delenv("AIW_RUNTIME_ROLE", raising=False)
-    monkeypatch.setenv("AIW_DATABASE_URL", TEST_DATABASE_URL)
+
+    configure_valid_environment(
+        monkeypatch,
+        runtime_role="web",
+    )
+    monkeypatch.delenv("AIW_RUNTIME_ROLE")
 
     with pytest.raises(SystemExit) as raised:
         main()
@@ -67,8 +100,10 @@ def test_main_exits_safely_when_runtime_role_is_invalid(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    monkeypatch.setenv("AIW_RUNTIME_ROLE", "api")
-    monkeypatch.setenv("AIW_DATABASE_URL", TEST_DATABASE_URL)
+    configure_valid_environment(
+        monkeypatch,
+        runtime_role="api",
+    )
 
     with pytest.raises(SystemExit) as raised:
         main()

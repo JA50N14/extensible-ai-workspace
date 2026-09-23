@@ -57,6 +57,11 @@ services:
     environment:
       AIW_RUNTIME_ROLE: web
       AIW_DATABASE_URL: postgresql://app:development@postgres:5432/extensible_ai_workspace
+      AIW_AUTHENTICATION_MODE: local_trusted
+      AIW_PUBLIC_ORIGIN: http://127.0.0.1:8000
+      AIW_LOCAL_IDENTITY_ISSUER: extensible-ai-workspace-local
+      AIW_LOCAL_IDENTITY_SUBJECT: local-user
+      AIW_LOCAL_IDENTITY_DISPLAY_NAME: Local User
     depends_on:
       postgres:
         condition: service_healthy
@@ -69,6 +74,11 @@ services:
     environment:
       AIW_RUNTIME_ROLE: worker
       AIW_DATABASE_URL: postgresql://app:development@postgres:5432/extensible_ai_workspace
+      AIW_AUTHENTICATION_MODE: local_trusted
+      AIW_PUBLIC_ORIGIN: http://127.0.0.1:8000
+      AIW_LOCAL_IDENTITY_ISSUER: extensible-ai-workspace-local
+      AIW_LOCAL_IDENTITY_SUBJECT: local-user
+      AIW_LOCAL_IDENTITY_DISPLAY_NAME: Local User
     depends_on:
       postgres:
         condition: service_healthy

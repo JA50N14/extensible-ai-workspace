@@ -2,7 +2,16 @@ from unittest.mock import Mock
 
 import pytest
 
-from extensible_ai_workspace.config import RuntimeRole, Settings
+from extensible_ai_workspace.config import (
+    AuthenticationMode,
+    RuntimeRole,
+    Settings,
+)
+
+from extensible_ai_workspace.identity.application import (
+    TrustedLocalIdentity,
+)
+
 from extensible_ai_workspace.runtime import run_web
 
 TEST_DATABASE_URL = (
@@ -10,6 +19,13 @@ TEST_DATABASE_URL = (
     "extensible_ai_workspace"
 )
 
+TEST_SETTINGS = {
+    "authentication_mode": AuthenticationMode.LOCAL_TRUSTED,
+    "public_origin": "http://127.0.0.1:8000",
+    "local_identity_issuer": "extensible-ai-workspace-local",
+    "local_identity_subject": "local-user",
+    "local_identity_display_name": "Local User",
+}
 
 def test_run_web_starts_database_ready_application(
     monkeypatch: pytest.MonkeyPatch,
@@ -17,6 +33,8 @@ def test_run_web_starts_database_ready_application(
     settings = Settings(
         runtime_role=RuntimeRole.WEB,
         database_url=TEST_DATABASE_URL,
+        **TEST_SETTINGS,
+
     )
     readiness_check = Mock(return_value=True)
     create_database_readiness_check = Mock(
@@ -45,8 +63,28 @@ def test_run_web_starts_database_ready_application(
     create_database_readiness_check.assert_called_once_with(
         TEST_DATABASE_URL
     )
-    create_app.assert_called_once_with(
-        readiness_check=readiness_check
+    create_app.assert_called_once()
+
+    create_app_arguments = create_app.call_args.kwargs
+
+    assert (
+        create_app_arguments["readiness_check"]
+        is readiness_check
+    )
+    assert create_app_arguments["public_origin"] == (
+        "http://127.0.0.1:8000"
+    )
+    assert create_app_arguments["secure_cookie"] is False
+
+    session_service_factory = create_app_arguments[
+        "session_service_factory"
+    ]
+    session_service = session_service_factory()
+
+    assert session_service._trusted_identity == TrustedLocalIdentity(
+        issuer="extensible-ai-workspace-local",
+        subject="local-user",
+        display_name="Local User",
     )
     uvicorn_run.assert_called_once_with(
         application,
@@ -62,6 +100,7 @@ def test_run_worker_starts_when_database_is_available(
     settings = Settings(
         runtime_role=RuntimeRole.WORKER,
         database_url=TEST_DATABASE_URL,
+        **TEST_SETTINGS,
     )
     check_database_schema = Mock(return_value=True)
     worker_event = Mock()
@@ -100,6 +139,7 @@ def test_run_worker_exits_when_database_is_unavailable(
     settings = Settings(
         runtime_role=RuntimeRole.WORKER,
         database_url=TEST_DATABASE_URL,
+        **TEST_SETTINGS,
     )
     check_database_schema = Mock(return_value=False)
 
