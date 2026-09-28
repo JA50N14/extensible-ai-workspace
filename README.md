@@ -259,3 +259,57 @@ Remove temporary credential material:
 unset LOGIN_RESPONSE CSRF_TOKEN
 rm -f "$COOKIE_JAR"
 ```
+
+## Workspace application capability
+
+The Workspace module owns workflow-neutral workspace lifecycle and
+persistence.
+
+The current application capability supports:
+
+- Creating an active workspace for an authenticated internal user
+- Retrieving an active workspace by workspace ID and owner user ID
+- Listing an owner's active workspaces
+- Returning workspaces in stable newest-first order
+- Persisting workspaces through an application-controlled Unit of Work
+
+Workspace creation accepts only:
+
+- Authenticated owner user ID
+- Workspace name
+- Optional description
+
+The application controls:
+
+- Workspace ID
+- Initial status
+- Creation and update timestamps
+- Lifecycle timestamps
+- Optimistic concurrency version
+
+Workspace names are trimmed and cannot be blank. Optional descriptions are
+trimmed, and blank descriptions are stored as `NULL`.
+
+Workspace retrieval is owner-scoped. The application returns the same
+unavailable result when a workspace:
+
+- Does not exist
+- Belongs to another user
+- Is not active
+
+This prevents callers from using different application outcomes to discover
+another user's workspace.
+
+Workspace listings use the stable ordering:
+
+```text
+created_at descending
+id descending
+```
+
+The identifier provides a deterministic tie-breaker when multiple workspaces
+have the same creation timestamp.
+
+The current capability is implemented below the presentation layer. Browser
+routes, forms, redirects, CSRF handling for workspace creation, and
+server-rendered workspace pages are implemented separately.
